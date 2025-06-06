@@ -5,7 +5,7 @@ import os
 from typing import Any, Dict, List, Optional
 
 from dotenv import load_dotenv
-from mcp import ClientSession, StdioServerParameters
+from mcp import ClientSession
 from mcp.client.sse import sse_client
 from openai import AsyncOpenAI
 
@@ -31,13 +31,13 @@ class MCPOpenAIClient:
         """Connect to the MCP server via SSE."""
         if self.exit_stack is not None:
             await self.cleanup()
-        
         self.exit_stack = AsyncExitStack()
         
         try:
             sse_transport = await self.exit_stack.enter_async_context(
                 sse_client(f"http://{self.host}:{self.port}/sse")
             )
+            print('eee')
             self.stdio, self.write = sse_transport
             self.session = await self.exit_stack.enter_async_context(
                 ClientSession(self.stdio, self.write)
@@ -74,15 +74,15 @@ class MCPOpenAIClient:
             tool_choice="auto",
         )
 
-        assistant_message = response.choices[0].message
+        llm_message = response.choices[0].message
 
         messages = [
             {"role": "user", "content": query},
-            assistant_message,
+            llm_message,
         ]
 
-        if assistant_message.tool_calls:
-            for tool_call in assistant_message.tool_calls:
+        if llm_message.tool_calls:
+            for tool_call in llm_message.tool_calls:
                 result = await self.session.call_tool(
                     tool_call.function.name,
                     arguments=json.loads(tool_call.function.arguments),
@@ -105,7 +105,7 @@ class MCPOpenAIClient:
 
             return final_response.choices[0].message.content
 
-        return assistant_message.content
+        return llm_message.content
 
     async def cleanup(self):
         """Clean up resources."""
