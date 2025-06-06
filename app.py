@@ -37,7 +37,6 @@ class MCPOpenAIClient:
             sse_transport = await self.exit_stack.enter_async_context(
                 sse_client(f"http://{self.host}:{self.port}/sse")
             )
-            print('eee')
             self.stdio, self.write = sse_transport
             self.session = await self.exit_stack.enter_async_context(
                 ClientSession(self.stdio, self.write)
